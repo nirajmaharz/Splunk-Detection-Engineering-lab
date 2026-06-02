@@ -1,0 +1,11 @@
+index=winserver2019 EventCode=4625 Logon_Type=3
+| bucket _time span=2m
+| stats count by _time, Account_Name, src_ip
+| where count >= 10
+| eval severity=case(
+    count>=30,"Critical",
+    count>=20,"High",
+    count>=10,"Medium"
+)
+| sort -count
+| table _time, src_ip, Account_Name, count, severity
