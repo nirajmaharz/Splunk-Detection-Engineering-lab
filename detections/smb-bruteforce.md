@@ -117,9 +117,9 @@ Attempt multiple password guesses against the Administrator account over SMB unt
 
 The brute-force attack successfully generated multiple Event ID 4625 failed authentication events and triggered the Splunk detection rule once the configured threshold was exceeded.
 
-![alt text](images/image-1.png)
+![alt text](screenshots/image-1.png)
 
-![alt text](images/image-2.png)
+![alt text](screenshots/image-2.png)
 
 ---
 

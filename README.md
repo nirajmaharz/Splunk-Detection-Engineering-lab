@@ -25,7 +25,7 @@ A hands-on detection engineering lab built on a Windows Active Directory environ
 │  │   IP: 172.25.1.10    │                               │
 │  │   (Attacker)         │                               │
 │  │   - Metasploit       │                               │
-│  │   - Hydra / CrackMapExec                            │
+│  │   - Hydra / nxc                            │
 │  │   - Nmap             │                               │
 │  └──────────────────────┘                               │
 │                                                         │
@@ -66,13 +66,13 @@ A hands-on detection engineering lab built on a Windows Active Directory environ
 ## Repository Structure
 
 ```
-splunk-soc-lab/
+Splunk-detection-engineering-lab/
 │
 ├── README.md                   ← This file
 │
 ├── setup/
 │   ├── universal-forwarder.md  ← UF installation & inputs.conf
-│   └── windows-ta.md           ← TA configuration guide
+│   
 │
 ├── detections/
 │   ├── smb-brute-force.md
@@ -87,11 +87,11 @@ splunk-soc-lab/
 │   └── alert-configs.md        ← Splunk alert settings for each detection
 │
 ├── dashboards/
-│   ├── soc-overview.xml        ← Splunk dashboard export (XML)
+│   ├── smb-bruteforce-detection.xml        ← Splunk dashboard export (XML)
 │   └── dashboard-guide.md      ← How to import the dashboard
 │
 └── screenshots/
-    └── (add Splunk UI screenshots here)
+    └── (All screenshots)
 ```
 
 ---
@@ -111,18 +111,18 @@ Edit `inputs.conf` on each Windows host:
 
 ```ini
 [WinEventLog://Security]
-index = windows_lab
+index = winserver2019
 disabled = 0
 start_from = oldest
 current_only = 0
 evt_resolve_ad_obj = 1
 
 [WinEventLog://System]
-index = windows_lab
+index = winserver2019
 disabled = 0
 
 [WinEventLog://Application]
-index = windows_lab
+index = winserver2019
 disabled = 0
 ```
 
@@ -134,42 +134,8 @@ Restart-Service SplunkForwarder
 ### 2. Verify Logs in Splunk
 
 ```spl
-index=windows_lab | stats count by EventCode | sort -count
+index=winserver2019 | stats count by EventCode | sort -count
 ```
-
-You should see Event IDs 4624, 4625, 4672, 4688, etc.
-
----
-
-## Attack Simulations
-
-Each detection was validated by simulating the attack from the Parrot OS attacker machine (172.25.1.10).
-
-### SMB Brute Force (Hydra)
-```bash
-hydra -L users.txt -P /usr/share/wordlists/rockyou.txt smb://172.25.1.102
-```
-
-### SMB Brute Force (CrackMapExec)
-```bash
-crackmapexec smb 172.25.1.102 -u users.txt -p passwords.txt
-```
-
-These generate Event ID 4625 with Logon Type 3 on the Domain Controller, which triggers the SMB Brute Force detection.
-
----
-
-## Dashboard
-
-The SOC Overview dashboard provides a single-pane view of:
-- Failed login attempts over time
-- Top targeted accounts
-- Top source IPs
-- Active alerts by severity
-- MITRE ATT&CK technique coverage
-
-Import the dashboard from `dashboards/soc-overview.xml` in Splunk UI:
-> Settings → User Interface → Views → Import
 
 ---
 
