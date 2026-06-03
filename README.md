@@ -1,6 +1,6 @@
 # Splunk SOC Detection Lab
 
-A hands-on detection engineering lab built on a Windows Active Directory environment, simulating real-world SOC workflows using Splunk. This project covers threat detection, alerting, and dashboard building — each detection mapped to the MITRE ATT&CK framework.
+A hands-on detection engineering lab built on a self-hosted Active Directory environment, using Splunk Enterprise to simulate real-world SOC workflows — log ingestion, threat detection, alerting, and dashboarding.
 
 ---
 
@@ -8,60 +8,44 @@ A hands-on detection engineering lab built on a Windows Active Directory environ
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                   VMware Workstation                     │
+│                    VMware Workstation                    │
 │                                                         │
-│  ┌──────────────────────┐   ┌──────────────────────┐   │
-│  │  Windows Server 2019 │   │     Windows 10       │   │
-│  │  DC: marvel.local    │   │  Domain Joined       │   │
-│  │  IP: 172.25.1.102    │   │  (Victim Machine)    │   │
-│  │                      │   │                      │   │
-│  │  - Splunk 9.x        │   │  - Splunk UF         │   │
-│  │  - Splunk UF         │   │  - Windows TA        │   │
-│  │  - Windows TA        │   │                      │   │
-│  └──────────────────────┘   └──────────────────────┘   │
-│                                                         │
-│  ┌──────────────────────┐                               │
-│  │   Parrot OS          │                               │
-│  │   IP: 172.25.1.10    │                               │
-│  │   (Attacker)         │                               │
-│  │   - Metasploit       │                               │
-│  │   - Hydra / nxc                            │
-│  │   - Nmap             │                               │
-│  └──────────────────────┘                               │
-│                                                         │
-│         Custom Network: 172.25.1.0/24                   │
+│  ┌──────────────────────┐    ┌───────────────────────┐  │
+│  │  Windows Server 2019 │    │     Windows 10        │  │
+│  │  DC: marvel.local    │    │  Domain Joined Client │  │
+│  │  172.25.1.102        │    │  172.25.1.x           │  │
+│  │                      │    │                       │  │
+│  │  ┌────────────────┐  │    │  ┌─────────────────┐  │  │
+│  │  │ Splunk         │  │    │  │ Splunk UF       │  │  │
+│  │  │ Enterprise     │◄─┼────┼──│ Windows TA      │  │  │
+│  │  │ (Developer)    │  │    │  └─────────────────┘  │  │
+│  │  └────────────────┘  │    └───────────────────────┘  │
+│  │  ┌────────────────┐  │                               │
+│  │  │ Splunk UF      │  │    ┌───────────────────────┐  │
+│  │  │ Windows TA     │  │    │  Parrot OS (Attacker)  │  │
+│  │  └────────────────┘  │    │  172.25.1.10           │  │
+│  └──────────────────────┘    │  Metasploit / Hydra /  │  │
+│                               │  CrackMapExec          │  │
+│                               └───────────────────────┘  │
+│                    Custom Network: 172.25.1.0/24          │
 └─────────────────────────────────────────────────────────┘
 ```
 
----
-
-## Tools & Technologies
-
-| Category | Tool |
-|---|---|
-| SIEM | Splunk Enterprise (Developer License) |
-| Log Forwarding | Splunk Universal Forwarder |
-| Log Parsing | Splunk Add-on for Microsoft Windows (TA) |
-| Domain | Windows Server 2019 — Active Directory (marvel.local) |
-| Endpoint | Windows 10 (domain joined) |
-| Attacker | Parrot OS — Hydra, CrackMapExec, Metasploit |
-| Framework | MITRE ATT&CK |
-
----
-
 ## Detections Built
 
-| # | Detection Name | MITRE Technique | Event IDs | Severity |
-|---|---|---|---|---|
-| 1 | SMB Brute Force | T1110 — Brute Force | 4625 (Logon Type 3) | Medium / High / Critical |
-| 2 | Brute Force → Successful Login | T1110.001 | 4625 + 4624 | High |
-| 3 | New Local Admin Account Created | T1136.001 | 4720 + 4732 | High |
-| 4 | Privilege Escalation — Special Logon | T1078 | 4672 | Medium |
-| 5 | Suspicious PowerShell Execution | T1059.001 | Sysmon EID 1 | High |
-| 6 | Scheduled Task Created | T1053.005 | 4698 | Medium |
-| 7 | Pass-the-Hash (Lateral Movement) | T1550.002 | 4624 Logon Type 3 + NTLM | Critical |
+All detections are mapped to [MITRE ATT&CK](https://attack.mitre.org/). Each detection lives in `detections/` with a detailed notes explaining the logic, simulation steps, and tuning.
 
----
+| Detection | Tactic | Technique | Severity | File |
+|-----------|--------|-----------|----------|------|
+| SMB Brute Force | Credential Access | T1110 | High | [smb_bruteforce.md](detections/smb_bruteforce.md) |
+| AS-REP Roasting | Credential Access | T1558.004 | High | [asrep_roasting.md](detections/asrep_roasting.md) |
+| Kerberoasting | Credential Access | T1558.003 | Critical | [kerberoasting.md](detections/kerberoasting.md) |
+| New Local Admin Created | Persistence | T1136.001 | High | [new_local_admin.md](detections/new_local_admin.spl) |
+| Privilege Escalation | Privilege Escalation | T1078 | High | [privilege_escalation.md](detections/privilege_escalation.spl) |
+| Suspicious PowerShell Execution | Execution | T1059.001 | Medium | [suspicious_powershell.md](detections/suspicious_powershell.spl) |
+| Scheduled Task Created | Persistence | T1053.005 | Medium | [scheduled_task.md](detections/scheduled_task.spl) |
+
+
 
 ## Repository Structure
 
@@ -75,8 +59,9 @@ Splunk-detection-engineering-lab/
 │   
 │
 ├── detections/
-│   ├── smb-brute-force.md
-│   ├── brute-force-success.md
+│   ├── smb_bruteforce.md
+│   ├── asrep_roasting.md
+|   ├── kerberoasting.md
 │   ├── new-local-admin.md
 │   ├── privilege-escalation.md
 │   ├── suspicious-powershell.md
@@ -84,7 +69,7 @@ Splunk-detection-engineering-lab/
 │   └── pass-the-hash.md
 │
 ├── alerts/
-│   └── alert-configs.md        ← Splunk alert settings for each detection
+│   └── alert-configs.md        ← Splunk alert settings for each
 │
 ├── dashboards/
 │   ├── smb-bruteforce-detection.xml        ← Splunk dashboard export (XML)
@@ -94,64 +79,80 @@ Splunk-detection-engineering-lab/
     └── (All screenshots)
 ```
 
+## Lab Setup
+
+| Host | Role | IP | OS |
+|------|------|----|----|
+| Windows Server 2019 | Domain Controller + Splunk Enterprise | 172.25.1.102 | Windows Server 2019 |
+| Windows 10 | Domain-joined client | 172.25.1.x | Windows 10 |
+| Parrot OS | Attacker machine | 172.25.1.10 | Parrot OS |
+
+---
+
+## Components
+
+| Component | Purpose |
+|-----------|---------|
+| Splunk Enterprise (Developer License) | SIEM - log ingestion, search, alerting, dashboards |
+| Splunk Universal Forwarder | Ships Windows Event Logs to Splunk |
+| Splunk Add-on for Microsoft Windows (TA) | Used for field extractions for Windows logs |
+| Active Directory (marvel.local) | Generates realistic authentication and directory event logs |
+| Sysmon | Endpoint telemetry - process creation, network connections, file events |
+
+---
+
+## Log Sources
+
+| Source | Event IDs | Description |
+|--------|-----------|-------------|
+| Windows Security Log | 4624, 4625, 4648, 4672, 4720, 4732, 4768, 4771 | Auth, privilege use, account management |
+| Windows System Log | 7045, 7036 | Service installs and state changes |
+| Sysmon | 1, 3, 7, 11, 13 | Process creation, network, file, registry |
+
+
 ---
 
 ## Setup Guide
 
-### Prerequisites
-- VMware Workstation with Windows Server 2019 and Windows 10 VMs
-- Splunk Enterprise installed on Windows Server 2019
-- Splunk Developer License (60 days) activated
-- Splunk Universal Forwarder installed on all Windows hosts
-- Splunk Add-on for Microsoft Windows (TA) installed
-
-### 1. Configure Universal Forwarder
-
-Edit `inputs.conf` on each Windows host:
-
-```ini
-[WinEventLog://Security]
-index = winserver2019
-disabled = 0
-start_from = oldest
-current_only = 0
-evt_resolve_ad_obj = 1
-
-[WinEventLog://System]
-index = winserver2019
-disabled = 0
-
-[WinEventLog://Application]
-index = winserver2019
-disabled = 0
-```
-
-Restart the forwarder:
-```powershell
-Restart-Service SplunkForwarder
-```
-
-### 2. Verify Logs in Splunk
-
-```spl
-index=winserver2019 | stats count by EventCode | sort -count
-```
+See [`setup/splunk_setup.md`](setup/splunk_setup.md) for step-by-step instructions:
+1. Splunk Enterprise install and index configuration
+2. Universal Forwarder deployment
+3. Windows TA configuration
+4. Sysmon deployment with SwiftOnSecurity config
+5. Alert configuration
 
 ---
 
-## Key Learnings
+## Attack Simulation
 
-- Built end-to-end detection pipeline from log ingestion to alerting
-- Mapped every detection to MITRE ATT&CK techniques
-- Simulated real attacks from a Parrot OS attacker to generate authentic telemetry
-- Tuned thresholds to minimize false positives (e.g. brute force threshold set to 10 failures in 2 minutes)
-- Built a SOC dashboard for centralized visibility
+Each detection includes simulation steps using tools available on the attacker machine (Parrot OS):
+
+| Tool | Used For |
+|------|----------|
+| Hydra | SMB / RDP brute force simulation |
+| nxc | SMB enumeration and credential spray |
+| Metasploit | Exploit and post-exploitation simulation |
+| Atomic Red Team | MITRE ATT&CK technique simulation |
+| Impacket | Kerberoasting, Asreproasting, Pass-the-Hash |
 
 ---
 
-## Author
+## Skills Demonstrated
 
-**Niraj Maharzhan**  
-Cybersecurity | Network Security | Detection Engineering  
-OSCP | CRTP | CEH Practical | CCNA | RHCSA | PCNSA  
-[LinkedIn](https://linkedin.com/in/nirajmaharz) | [Blog](https://nirajmaharz.github.io)
+- Detection engineering with SPL (Splunk Processing Language)
+- MITRE ATT&CK mapping and threat modeling
+- Active Directory attack simulation and log analysis
+- SIEM alerting, tuning, and dashboard creation
+- Incident triage and SOC analyst workflow
+- Windows event log forensics (Security, Sysmon)
+
+
+---
+
+## References
+
+- [MITRE ATT&CK Framework](https://attack.mitre.org/)
+- [Splunk Security Essentials](https://splunkbase.splunk.com/app/3435)
+- [SwiftOnSecurity Sysmon Config](https://github.com/SwiftOnSecurity/sysmon-config)
+- [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team)
+- [Windows Security Event Log Encyclopedia](https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/)

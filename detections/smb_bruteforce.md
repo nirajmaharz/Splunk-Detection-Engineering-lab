@@ -89,16 +89,6 @@ index=winserver2019 EventCode=4625 Logon_Type=3
 
 ---
 
-## Lab Environment
-
-| System              | IP Address   | Role              |
-| ------------------- | ------------ | ----------------- |
-| Windows Server 2019 | 172.25.1.102 | Domain Controller |
-| Parrot OS           | 172.25.1.10  | Attack Host       |
-| Splunk Enterprise   | Internal     | SIEM Platform     |
-
----
-
 ## Attack Simulation
 
 The attack was simulated from a Parrot OS system using NetExec (`nxc`) against the Domain Controller's SMB service.
@@ -117,9 +107,11 @@ Attempt multiple password guesses against the Administrator account over SMB unt
 
 The brute-force attack successfully generated multiple Event ID 4625 failed authentication events and triggered the Splunk detection rule once the configured threshold was exceeded.
 
-![alt text](screenshots/image-1.png)
+## Splunk Dashboard Created
 
-![alt text](screenshots/image-2.png)
+![alt text](../screenshots/image-1.png)
+
+![alt text](../screenshots/image-2.png)
 
 ---
 
