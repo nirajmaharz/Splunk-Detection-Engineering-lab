@@ -1,0 +1,94 @@
+<dashboard version="1.1" theme="dark">
+  <label>SOC - Kerberoasting Detection</label>
+  <description>Kerberos TGS ticket abuse detection | marvel.local | MITRE T1558.003</description>
+
+  <row>
+    <panel>
+      <title>RC4 TGS Requests Over Time</title>
+      <chart>
+        <search>
+          <query>index=winserver2019 EventCode=4769 Ticket_Encryption_Type=0x17
+| where Service_Name!="krbtgt" AND NOT Service_Name LIKE "%$"
+| timechart span=5m count as "RC4 TGS Requests"</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.seriesColors">[0xFF4136]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Top Targeted Service Accounts</title>
+      <chart>
+        <search>
+          <query>index=winserver2019 EventCode=4769 Ticket_Encryption_Type=0x17
+| where Service_Name!="krbtgt" AND NOT Service_Name LIKE "%$"
+| stats count by Service_Name
+| sort -count</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.seriesColors">[0xFF851B]</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Top Source IPs</title>
+      <chart>
+        <search>
+          <query>index=winserver2019 EventCode=4769 Ticket_Encryption_Type=0x17
+| where Service_Name!="krbtgt" AND NOT Service_Name LIKE "%$"
+| stats count by Client_Address
+| sort -count</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.seriesColors">[0xFF4136]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Encryption Type Breakdown</title>
+      <chart>
+        <search>
+          <query>index=winserver2019 EventCode=4769
+| where Service_Name!="krbtgt" AND NOT Service_Name LIKE "%$"
+| eval enc_type=case(Ticket_Encryption_Type="0x17","RC4 (Weak - Kerberoastable)", Ticket_Encryption_Type="0x12","AES256 (Strong)", true(),"Other")
+| stats count by enc_type</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Bulk Kerberoasting Incidents</title>
+      <table>
+        <search>
+          <query>index=winserver2019 EventCode=4769 Ticket_Encryption_Type=0x17
+| where Service_Name!="krbtgt" AND NOT Service_Name LIKE "%$"
+| bucket _time span=5m
+| stats dc(Service_Name) as unique_services, values(Service_Name) as services, count by _time, Account_Name, Client_Address
+| where unique_services >= 3
+| eval severity=case(unique_services>=5,"Critical", unique_services>=3,"High")
+| eval tactic="Credential Access"
+| eval mitre_technique="T1558.003 - Kerberoasting"
+| eval note="Multiple SPNs requested in short window - bulk Kerberoasting"
+| sort -unique_services
+| table _time, Account_Name, Client_Address, unique_services, services, count, severity, note, tactic, mitre_technique</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <option name="rowNumbers">true</option>
+      </table>
+    </panel>
+  </row>
+
+</dashboard>

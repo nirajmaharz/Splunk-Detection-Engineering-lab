@@ -1,0 +1,101 @@
+<dashboard version="1.1" theme="dark">
+  <label>SOC - AS-REP Roasting Detection</label>
+  <description>AS-REP Roasting detection | marvel.local | MITRE T1558.004</description>
+
+  <row>
+    <panel>
+      <title>AS-REP Roasting Events Over Time</title>
+      <chart>
+        <search>
+          <query>index=winserver2019 EventCode=4768
+| rex field=_raw "Pre-Authentication Type:\s+(?&lt;pre_auth_type&gt;\d+)"
+| where pre_auth_type="0"
+| where Account_Name!="krbtgt" AND NOT Account_Name LIKE "%$"
+| timechart span=5m count as "AS-REP Events"</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.seriesColors">[0xFF4136]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Top Source IPs</title>
+      <chart>
+        <search>
+          <query>index=winserver2019 EventCode=4768
+| rex field=_raw "Pre-Authentication Type:\s+(?&lt;pre_auth_type&gt;\d+)"
+| where pre_auth_type="0"
+| where Account_Name!="krbtgt" AND NOT Account_Name LIKE "%$"
+| stats count by Client_Address
+| sort -count</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.seriesColors">[0xFF4136]</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Vulnerable Accounts Targeted</title>
+      <chart>
+        <search>
+          <query>index=winserver2019 EventCode=4768
+| rex field=_raw "Pre-Authentication Type:\s+(?&lt;pre_auth_type&gt;\d+)"
+| where pre_auth_type="0"
+| where Account_Name!="krbtgt" AND NOT Account_Name LIKE "%$"
+| stats count by Account_Name
+| sort -count</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.seriesColors">[0xFF851B]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Pre-Authentication Type Breakdown</title>
+      <chart>
+        <search>
+          <query>index=winserver2019 EventCode=4768
+| rex field=_raw "Pre-Authentication Type:\s+(?&lt;pre_auth_type&gt;\d+)"
+| where Account_Name!="krbtgt" AND NOT Account_Name LIKE "%$"
+| eval auth_type=case(pre_auth_type="0","None (Vulnerable)", pre_auth_type="2","Encrypted Timestamp (Normal)", true(),"Other")
+| stats count by auth_type</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>AS-REP Roastable Accounts — Active Incidents</title>
+      <table>
+        <search>
+          <query>index=winserver2019 EventCode=4768
+| rex field=_raw "Pre-Authentication Type:\s+(?&lt;pre_auth_type&gt;\d+)"
+| where pre_auth_type="0"
+| where Account_Name!="krbtgt" AND NOT Account_Name LIKE "%$"
+| stats count, values(Client_Address) as source_ips, dc(Client_Address) as unique_sources by Account_Name
+| eval severity=case(count>=5,"Critical", count>=3,"High", count>=1,"Medium")
+| eval tactic="Credential Access"
+| eval mitre_technique="T1558.004 - AS-REP Roasting"
+| eval note="TGT requested without preauthentication - account is AS-REP roastable"
+| sort -count
+| table Account_Name, source_ips, unique_sources, count, severity, note, tactic, mitre_technique</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <option name="rowNumbers">true</option>
+      </table>
+    </panel>
+  </row>
+
+</dashboard>
